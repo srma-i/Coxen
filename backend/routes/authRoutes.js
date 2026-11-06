@@ -90,7 +90,7 @@ const ensureFirstLoginAt = async (userId) => {
       $set: { firstLoginAt: new Date() },
     },
     {
-      new: true,
+      returnDocument: "after",
     }
   );
 
@@ -197,7 +197,7 @@ const issueOTP = async ({ email, name = "", purpose }) => {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
       upsert: true,
       setDefaultsOnInsert: true,
     }
