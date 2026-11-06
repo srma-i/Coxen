@@ -1,44 +1,49 @@
 
-const nodemailer = require("nodemailer");
+/**
+ * COXEN Email Service
+ * Email provider: Resend
+ * Uses HTTPS API instead of Gmail SMTP.
+ */
 
-// Gmail SMTP transporter
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  family: 4,
+const RESEND_API_URL = "https://api.resend.com";
 
-  connectionTimeout: 20000,
-  greetingTimeout: 20000,
-  socketTimeout: 30000,
-
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+const EMAIL_FROM =
+  process.env.EMAIL_FROM || "COXEN <onboarding@resend.dev>";
 
 /**
- * Verify Gmail SMTP connection.
+ * Verify Resend API connection and API key.
  */
 async function verifyEmailConnection() {
   try {
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    const apiKey = process.env.RESEND_API_KEY;
+
+    if (!apiKey) {
       throw new Error(
-        "Gmail credentials are missing from environment variables."
+        "RESEND_API_KEY is missing from environment variables."
       );
     }
 
-    await transporter.verify();
+    const response = await fetch(`${RESEND_API_URL}/domains`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-    console.log("Gmail SMTP connection successful.");
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+
+      throw new Error(
+        result.message || `Resend API error: ${response.status}`
+      );
+    }
+
+    console.log("Resend API connection successful.");
     return true;
   } catch (error) {
-    console.error("Gmail SMTP connection failed:", {
+    console.error("Resend API connection failed:", {
       message: error.message,
-      code: error.code,
-      command: error.command,
-      responseCode: error.responseCode,
     });
 
     return false;
@@ -46,7 +51,7 @@ async function verifyEmailConnection() {
 }
 
 /**
- * Send an email.
+ * Send an email using Resend.
  *
  * @param {Object} options
  * @param {string} options.to
@@ -55,10 +60,12 @@ async function verifyEmailConnection() {
  * @param {string} [options.html]
  */
 async function sendEmail({ to, subject, text, html }) {
-  // Validate Gmail credentials
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  // Validate API key
+  if (!apiKey) {
     throw new Error(
-      "Gmail credentials are missing from environment variables."
+      "RESEND_API_KEY is missing from environment variables."
     );
   }
 
@@ -70,23 +77,38 @@ async function sendEmail({ to, subject, text, html }) {
   }
 
   try {
-    const info = await transporter.sendMail({
-      from: `"COXEN" <${process.env.GMAIL_USER}>`,
-      to,
-      subject,
-      text,
-      ...(html ? { html } : {}),
+    const response = await fetch(`${RESEND_API_URL}/emails`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: [to],
+        subject,
+        ...(text ? { text } : {}),
+        ...(html ? { html } : {}),
+      }),
     });
 
-    console.log("Email sent successfully:", info.messageId);
+    const result = await response.json().catch(() => ({}));
 
-    return info;
+    if (!response.ok) {
+      throw new Error(
+        result.message || `Resend email error: ${response.status}`
+      );
+    }
+
+    console.log("Email sent successfully:", result.id);
+
+    return {
+      messageId: result.id,
+      ...result,
+    };
   } catch (error) {
     console.error("Email sending failed:", {
       message: error.message,
-      code: error.code,
-      command: error.command,
-      responseCode: error.responseCode,
     });
 
     throw error;
@@ -96,5 +118,5 @@ async function sendEmail({ to, subject, text, html }) {
 // Export email function
 module.exports = sendEmail;
 
-// Export SMTP connection verification function
+// Export API connection verification function
 module.exports.verifyEmailConnection = verifyEmailConnection;
