@@ -13,11 +13,13 @@ const requiredEnv = [
   "GEMINI_API_KEY",
   "MONGODB_URI",
   "JWT_SECRET",
+  "GMAIL_USER",
+  "GMAIL_APP_PASSWORD",
 ];
 
 for (const key of requiredEnv) {
   if (!process.env[key]) {
-    console.error(`${key} is missing from backend/.env`);
+    console.error(`${key} is missing from backend environment variables.`);
     process.exit(1);
   }
 }
@@ -35,6 +37,8 @@ const notificationRoutes = require("./routes/notificationRoutes");
 
 const authMiddleware = require("./middleware/authMiddleware");
 const errorMiddleware = require("./middleware/errorMiddleware");
+
+const sendEmail = require("./utils/sendEmail");
 
 const {
   migrateMemoryImportance,
@@ -73,7 +77,9 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(null, false);
+      console.warn("CORS blocked origin:", origin);
+
+      return callback(new Error("Not allowed by CORS"));
     },
 
     credentials: true,
@@ -92,7 +98,6 @@ app.use(
       "Authorization",
     ],
 
-    // Allow frontend to read custom streaming headers.
     exposedHeaders: [
       "X-Conversation-Id",
     ],
@@ -168,6 +173,18 @@ async function startServer() {
 
     console.log("MongoDB connected successfully.");
 
+    // Test Gmail SMTP connection.
+    // Failure is logged but does not stop the backend.
+    const emailConnected = await sendEmail.verifyEmailConnection();
+
+    if (emailConnected) {
+      console.log("Gmail SMTP is ready.");
+    } else {
+      console.warn(
+        "Gmail SMTP connection failed. Email sending may not work."
+      );
+    }
+
     // Run existing memory migrations.
     await migrateMemoryImportance();
 
@@ -185,6 +202,7 @@ async function startServer() {
       console.log("Persistent conversations: enabled");
       console.log("Streaming chat: enabled");
       console.log("Notifications API: enabled");
+      console.log("Gmail SMTP: configured");
       console.log("CORS: configured");
       console.log("-----------------------------------");
     });
@@ -192,7 +210,7 @@ async function startServer() {
   } catch (error) {
     console.error("-----------------------------------");
     console.error("Failed to start server:");
-    console.error(error.message);
+    console.error(error);
     console.error("-----------------------------------");
 
     process.exit(1);

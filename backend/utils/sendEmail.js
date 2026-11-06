@@ -23,7 +23,9 @@ const transporter = nodemailer.createTransport({
 async function verifyEmailConnection() {
   try {
     if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-      throw new Error("Gmail credentials are missing from Render environment variables.");
+      throw new Error(
+        "Gmail credentials are missing from environment variables."
+      );
     }
 
     await transporter.verify();
@@ -35,6 +37,7 @@ async function verifyEmailConnection() {
       message: error.message,
       code: error.code,
       command: error.command,
+      responseCode: error.responseCode,
     });
 
     return false;
@@ -51,12 +54,18 @@ async function verifyEmailConnection() {
  * @param {string} [options.html]
  */
 async function sendEmail({ to, subject, text, html }) {
+  // Validate Gmail credentials
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    throw new Error("Gmail credentials are missing from backend environment variables.");
+    throw new Error(
+      "Gmail credentials are missing from environment variables."
+    );
   }
 
+  // Validate email details
   if (!to || !subject || (!text && !html)) {
-    throw new Error("Email recipient, subject, and message are required.");
+    throw new Error(
+      "Email recipient, subject, and message are required."
+    );
   }
 
   try {
@@ -65,7 +74,7 @@ async function sendEmail({ to, subject, text, html }) {
       to,
       subject,
       text,
-      html,
+      ...(html ? { html } : {}),
     });
 
     console.log("Email sent successfully:", info.messageId);
@@ -83,6 +92,8 @@ async function sendEmail({ to, subject, text, html }) {
   }
 }
 
-// Export connection test and email function
+// Export email function
 module.exports = sendEmail;
+
+// Export SMTP connection verification function
 module.exports.verifyEmailConnection = verifyEmailConnection;
