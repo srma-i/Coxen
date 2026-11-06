@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import Icon from "../components/Icon";
@@ -9,7 +8,6 @@ const API_URL = (
 
 async function readResponse(response) {
   const text = await response.text();
-
   if (!text) return {};
 
   try {
@@ -233,6 +231,7 @@ export default function AuthScreen({ onAuthenticated, navigate }) {
         setOtp("");
         setStep("details");
         setMode("login");
+
         setSuccess(
           data.message ||
             "Password changed successfully. Please sign in."
@@ -270,6 +269,7 @@ export default function AuthScreen({ onAuthenticated, navigate }) {
     }
   };
 
+  // GOOGLE AUTHENTICATION
   const handleGoogleSuccess = async (credentialResponse) => {
     if (!credentialResponse?.credential) {
       setError("Google did not return a valid credential.");
@@ -305,7 +305,7 @@ export default function AuthScreen({ onAuthenticated, navigate }) {
         : step === "otp"
           ? "Verify your email"
           : "Set your password"
-      : "Welcome back";
+      : "Welcome to COXEN";
 
   const description = isForgot
     ? step === "details"
@@ -804,6 +804,17 @@ export default function AuthScreen({ onAuthenticated, navigate }) {
             padding-bottom: 25px;
           }
         }
+
+        /* =========================================
+           COXEN - GOOGLE ONLY AUTHENTICATION
+        ========================================= */
+
+        .auth-page .auth-tabs,
+        .auth-page .auth-form,
+        .auth-page .auth-switch-text,
+        .auth-page .auth-divider {
+          display: none !important;
+        }
       `}</style>
 
       <main className="auth-page">
@@ -857,6 +868,7 @@ export default function AuthScreen({ onAuthenticated, navigate }) {
               {isRegister && step === "details" && (
                 <div className="form-group">
                   <label htmlFor="auth-name">Full name</label>
+
                   <input
                     id="auth-name"
                     type="text"
@@ -875,6 +887,7 @@ export default function AuthScreen({ onAuthenticated, navigate }) {
                 isLogin) && (
                 <div className="form-group">
                   <label htmlFor="auth-email">Email address</label>
+
                   <input
                     id="auth-email"
                     type="email"
@@ -913,6 +926,7 @@ export default function AuthScreen({ onAuthenticated, navigate }) {
 
                   <div className="auth-resend">
                     Didn't receive the code?
+
                     <button
                       type="button"
                       onClick={handleResendOTP}

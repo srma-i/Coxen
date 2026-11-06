@@ -888,3 +888,15 @@ body,
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* =========================================
+   COXEN - GOOGLE ONLY AUTH SCREEN
+========================================= */
+
+.auth-page .auth-tabs,
+.auth-page .auth-form,
+.auth-page .auth-switch-text,
+.auth-page .auth-divider {
+  display: none !important;
+}
